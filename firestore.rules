@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Reusable Global Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 2 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTrackingKey(key) {
+      return key is string && key.size() >= 13 && key.size() <= 20 && key.matches('^DSD-[0-9]{4}_[0-9]{4}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email_verified == true && request.auth.token.email == 'abderrahmane.oubrou@gmail.com') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Validation Blueprints ---
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'id', 'slug', 'name', 'category', 'terroirRegion', 'originCity',
+        'producer', 'harvestLabel', 'image', 'shortNote', 'tastingNotes',
+        'pairings', 'ingredients', 'defaultPrice', 'inStock', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'slug', 'name', 'category', 'terroirRegion', 'originCity',
+        'producer', 'harvestLabel', 'image', 'shortNote', 'tastingNotes',
+        'pairings', 'ingredients', 'defaultPrice', 'inStock', 'updatedAt'
+      ])
+      && isValidId(data.id)
+      && data.slug is string && data.slug.size() >= 2 && data.slug.size() <= 120
+      && data.name is string && data.name.size() >= 2 && data.name.size() <= 140
+      && data.category in ['Huiles & Amlou', 'Miels & Dattes', 'Épices & Eaux Florales']
+      && data.terroirRegion in ['Souss-Massa', 'Drâa-Tafilalet']
+      && data.originCity is string && data.originCity.size() >= 2 && data.originCity.size() <= 100
+      && data.producer is string && data.producer.size() >= 2 && data.producer.size() <= 120
+      && data.harvestLabel is string && data.harvestLabel.size() >= 2 && data.harvestLabel.size() <= 100
+      && data.image is string && data.image.size() >= 5 && data.image.size() <= 240
+      && data.shortNote is string && data.shortNote.size() >= 5 && data.shortNote.size() <= 300
+      && data.tastingNotes is string && data.tastingNotes.size() >= 5 && data.tastingNotes.size() <= 500
+      && data.pairings is string && data.pairings.size() >= 5 && data.pairings.size() <= 500
+      && data.ingredients is string && data.ingredients.size() >= 5 && data.ingredients.size() <= 500
+      && data.defaultPrice is number && data.defaultPrice > 0 && data.defaultPrice <= 100000
+      && data.inStock is bool
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+        'orderId', 'orderNumber', 'trackingKey', 'customerName', 'phone',
+        'email', 'address', 'city', 'paymentMethod', 'status',
+        'subtotal', 'shippingCost', 'totalAmount', 'itemCount',
+        'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'orderId', 'orderNumber', 'trackingKey', 'customerName', 'phone',
+        'email', 'address', 'city', 'paymentMethod', 'status',
+        'subtotal', 'shippingCost', 'totalAmount', 'itemCount',
+        'createdAt', 'updatedAt'
+      ])
+      && isValidId(data.orderId)
+      && data.orderNumber is string && data.orderNumber.size() == 8 && data.orderNumber.matches('^DSD-[0-9]{4}$')
+      && isValidTrackingKey(data.trackingKey)
+      && data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100
+      && data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 24
+      && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+      && data.address is string && data.address.size() >= 4 && data.address.size() <= 200
+      && data.city is string && data.city.size() >= 2 && data.city.size() <= 100
+      && data.paymentMethod in ['cod', 'card']
+      && data.status in ['pending', 'preparing', 'shipped', 'delivered', 'cancelled']
+      && data.subtotal is number && data.subtotal > 0 && data.subtotal <= 500000
+      && data.shippingCost is number && data.shippingCost >= 0 && data.shippingCost <= 5000
+      && data.totalAmount is number && data.totalAmount >= data.subtotal && data.totalAmount <= 505000
+      && data.itemCount is int && data.itemCount >= 1 && data.itemCount <= 100
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidOrderItem(data, parentOrderId) {
+      return data.keys().hasAll([
+        'orderId', 'productId', 'productName', 'variantId',
+        'variantLabel', 'unitPrice', 'quantity', 'lineTotal', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'orderId', 'productId', 'productName', 'variantId',
+        'variantLabel', 'unitPrice', 'quantity', 'lineTotal', 'createdAt'
+      ])
+      && data.orderId == parentOrderId
+      && isValidId(data.productId)
+      && data.productName is string && data.productName.size() >= 2 && data.productName.size() <= 140
+      && isValidId(data.variantId)
+      && data.variantLabel is string && data.variantLabel.size() >= 2 && data.variantLabel.size() <= 60
+      && data.unitPrice is number && data.unitPrice > 0 && data.unitPrice <= 100000
+      && data.quantity is int && data.quantity >= 1 && data.quantity <= 100
+      && data.lineTotal is number && data.lineTotal > 0 && data.lineTotal <= 500000
+      && data.createdAt is timestamp;
+    }
+
+    function isValidOrderTracking(data) {
+      return data.keys().hasAll([
+        'orderId', 'orderNumber', 'status', 'city',
+        'paymentMethod', 'itemCount', 'totalAmount', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'orderId', 'orderNumber', 'status', 'city',
+        'paymentMethod', 'itemCount', 'totalAmount', 'createdAt', 'updatedAt'
+      ])
+      && isValidId(data.orderId)
+      && data.orderNumber is string && data.orderNumber.size() == 8 && data.orderNumber.matches('^DSD-[0-9]{4}$')
+      && data.status in ['pending', 'preparing', 'shipped', 'delivered', 'cancelled']
+      && data.city is string && data.city.size() >= 2 && data.city.size() <= 100
+      && data.paymentMethod in ['cod', 'card']
+      && data.itemCount is int && data.itemCount >= 1 && data.itemCount <= 100
+      && data.totalAmount is number && data.totalAmount > 0 && data.totalAmount <= 505000
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidNewsletter(data) {
+      return data.keys().hasAll(['email', 'createdAt'])
+      && data.keys().hasOnly(['email', 'createdAt'])
+      && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+      && data.createdAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // Admin directory: self-read only, no client writes
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, write: if false;
+    }
+
+    // Catalog Products: public read, admin write
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming()) && incoming().id == productId && incoming().updatedAt == request.time;
+      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming())
+        && incoming().id == existing().id
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['inStock', 'defaultPrice', 'updatedAt', 'harvestLabel', 'shortNote']);
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Full Customer Orders (PII Isolated): guest create (batch with order_tracking), admin read & status update
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().orderId == orderId
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/order_tracking/$(incoming().trackingKey));
+      allow update: if isAdmin()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().orderId == existing().orderId
+        && incoming().orderNumber == existing().orderNumber
+        && incoming().trackingKey == existing().trackingKey
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && existsAfter(/databases/$(database)/documents/order_tracking/$(existing().trackingKey));
+      allow delete: if false;
+
+      // Order Line Items Subcollection (Master Gate via existsAfter / getAfter)
+      match /items/{itemId} {
+        allow get: if isValidId(orderId) && isValidId(itemId) && isAdmin();
+        allow list: if isValidId(orderId) && isAdmin();
+        allow create: if isValidId(orderId)
+          && isValidId(itemId)
+          && isValidOrderItem(incoming(), orderId)
+          && incoming().createdAt == request.time
+          && existsAfter(/databases/$(database)/documents/orders/$(orderId))
+          && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    // Public Non-PII Order Tracking: get only by exact reference+phone suffix key, list admin-only
+    match /order_tracking/{trackingKey} {
+      allow get: if isValidTrackingKey(trackingKey);
+      allow list: if isAdmin();
+      allow create: if isValidTrackingKey(trackingKey)
+        && isValidOrderTracking(incoming())
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/orders/$(incoming().orderId))
+        && getAfter(/databases/$(database)/documents/orders/$(incoming().orderId)).data.trackingKey == trackingKey;
+      allow update: if isAdmin()
+        && isValidTrackingKey(trackingKey)
+        && isValidOrderTracking(incoming())
+        && incoming().orderId == existing().orderId
+        && incoming().orderNumber == existing().orderNumber
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Newsletter Harvest Dispatch: validated public create, admin read
+    match /newsletter/{subscriberId} {
+      allow get: if isValidId(subscriberId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(subscriberId)
+        && isValidNewsletter(incoming())
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

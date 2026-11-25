@@ -1,0 +1,8 @@
+{
+  "name": "Maison Valens",
+  "description": "Épicerie de terroir et récoltes artisanales en circuit direct depuis nos producteurs français.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

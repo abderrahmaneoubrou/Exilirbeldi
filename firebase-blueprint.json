@@ -1,0 +1,354 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Produit du terroir marocain (Souss-Massa ou Drâa-Tafilalet) disponible en boutique.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Huiles & Amlou", "Miels & Dattes", "Épices & Eaux Florales"]
+        },
+        "terroirRegion": {
+          "type": "string",
+          "enum": ["Souss-Massa", "Drâa-Tafilalet"]
+        },
+        "originCity": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "harvestLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "image": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 240
+        },
+        "shortNote": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 300
+        },
+        "tastingNotes": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        },
+        "pairings": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        },
+        "ingredients": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        },
+        "defaultPrice": {
+          "type": "number"
+        },
+        "inStock": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "slug",
+        "name",
+        "category",
+        "terroirRegion",
+        "originCity",
+        "producer",
+        "harvestLabel",
+        "image",
+        "shortNote",
+        "tastingNotes",
+        "pairings",
+        "ingredients",
+        "defaultPrice",
+        "inStock",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Commande client complète contenant les coordonnées de livraison (PII strictement protégée).",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 16,
+          "pattern": "^DSD-[0-9]{4}$"
+        },
+        "trackingKey": {
+          "type": "string",
+          "minLength": 13,
+          "maxLength": 20,
+          "pattern": "^DSD-[0-9]{4}_[0-9]{4}$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 24
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 120
+        },
+        "address": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 200
+        },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["cod", "card"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "preparing", "shipped", "delivered", "cancelled"]
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "shippingCost": {
+          "type": "number"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "orderNumber",
+        "trackingKey",
+        "customerName",
+        "phone",
+        "email",
+        "address",
+        "city",
+        "paymentMethod",
+        "status",
+        "subtotal",
+        "shippingCost",
+        "totalAmount",
+        "itemCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OrderItem": {
+      "title": "OrderItem",
+      "description": "Ligne d'article rattachée à une commande dans sa sous-collection dédiée.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "productId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "productName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "variantId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "variantLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "unitPrice": {
+          "type": "number"
+        },
+        "quantity": {
+          "type": "integer"
+        },
+        "lineTotal": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "productId",
+        "productName",
+        "variantId",
+        "variantLabel",
+        "unitPrice",
+        "quantity",
+        "lineTotal",
+        "createdAt"
+      ]
+    },
+    "OrderTracking": {
+      "title": "OrderTracking",
+      "description": "Projection publique sans données personnelles permettant le suivi invité par référence + 4 derniers chiffres du téléphone.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 16,
+          "pattern": "^DSD-[0-9]{4}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "preparing", "shipped", "delivered", "cancelled"]
+        },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["cod", "card"]
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "orderNumber",
+        "status",
+        "city",
+        "paymentMethod",
+        "itemCount",
+        "totalAmount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "Abonné au carnet de récolte saisonnier.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Catalogue public des produits du terroir Souss-Massa et Drâa-Tafilalet."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Commandes complètes avec coordonnées client (lecture et gestion réservées à l'administrateur)."
+    },
+    "/orders/{orderId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/OrderItem" },
+      "description": "Lignes de produits associées à chaque commande."
+    },
+    "/order_tracking/{trackingKey}": {
+      "schema": { "$ref": "#/entities/OrderTracking" },
+      "description": "Fiche de suivi sans PII consultable uniquement par référence exacte (get uniquement pour les invités)."
+    },
+    "/newsletter/{subscriberId}": {
+      "schema": { "$ref": "#/entities/NewsletterSubscriber" },
+      "description": "Inscriptions au carnet de récolte (création publique validée, lecture réservée à l'administrateur)."
+    }
+  }
+}
